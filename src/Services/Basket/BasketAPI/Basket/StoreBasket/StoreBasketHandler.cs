@@ -1,4 +1,7 @@
-﻿namespace BasketAPI.Basket.StoreBasket;
+﻿using DiscountGRPC.Protos;
+using JasperFx.Events.Daemon;
+
+namespace BasketAPI.Basket.StoreBasket;
 
 #region Command
 public record StoreBasketCommand(ShoppingCart Cart) : ICommand<StoreBasketResult>;
@@ -18,15 +21,24 @@ public class StoreBasketCommandValidator : AbstractValidator<StoreBasketCommand>
 #endregion
 
 #region Handler
-public class StoreBasketHandler(IBasketRepository repository) : ICommandHandler<StoreBasketCommand, StoreBasketResult>
+public class StoreBasketHandler(IBasketRepository repository, DiscountProtoService.DiscountProtoServiceClient discountProto) : ICommandHandler<StoreBasketCommand, StoreBasketResult>
 {
     public async Task<StoreBasketResult> Handle(StoreBasketCommand command, CancellationToken cancellationToken)
     {
-        ShoppingCart cart = command.Cart;
-
+       await DeductDiscount(command.Cart, cancellationToken);
+        
         await repository.StoreBasketAsync(command.Cart, cancellationToken);
         
         return new StoreBasketResult(command.Cart.UserName);
+    }
+
+    private async Task DeductDiscount(ShoppingCart cart, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in cart.Items)
+        {
+            var coupon = await discountProto.GetDiscountAsync(new GetDiscountRequest { ProductName = item.ProductName });
+            item.Price -= coupon.Amount;
+        }
     }
 }
 #endregion

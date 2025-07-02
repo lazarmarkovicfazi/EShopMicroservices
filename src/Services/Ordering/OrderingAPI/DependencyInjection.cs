@@ -1,0 +1,17 @@
+﻿namespace OrderingAPI;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddApiServices(this IServiceCollection services)
+    {
+        
+        return services;
+    }
+
+    public static WebApplication UseApiServices(this WebApplication app)
+    {
+        // Configure API endpoints, middleware, etc.
+        
+        return app;
+    }
+}
